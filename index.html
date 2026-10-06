@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Major Scale Spelling</title>
+<style>
+  :root {
+    --bg: #111827;
+    --panel: #1f2937;
+    --text: #f9fafb;
+    --muted: #cbd5e1;
+    --accent: #60a5fa;
+    --good: #22c55e;
+    --bad: #ef4444;
+    --border: #64748b;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    padding: 28px;
+  }
+
+  main {
+    width: min(900px, 100%);
+    text-align: center;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 4rem);
+    margin: 0 0 10px;
+  }
+
+  .instructions {
+    color: var(--muted);
+    font-size: 1.15rem;
+    line-height: 1.5;
+    max-width: 760px;
+    margin: 0 auto 24px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 2px solid var(--border);
+    border-radius: 24px;
+    padding: 28px;
+    margin-top: 20px;
+  }
+
+  #status {
+    min-height: 70px;
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #prompt {
+    font-size: clamp(2.2rem, 7vw, 5rem);
+    font-weight: 900;
+    margin: 10px 0 24px;
+    letter-spacing: .02em;
+  }
+
+  #answer {
+    width: min(700px, 100%);
+    font-size: 2rem;
+    padding: 18px 20px;
+    border-radius: 16px;
+    border: 4px solid var(--accent);
+    background: #0b1220;
+    color: white;
+    outline: none;
+    text-align: center;
+  }
+
+  #answer:focus {
+    box-shadow: 0 0 0 6px rgba(96,165,250,.3);
+  }
+
+  .tally-label {
+    font-size: 1.25rem;
+    margin-top: 28px;
+    color: var(--muted);
+  }
+
+  #tally {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 14px auto 4px;
+    max-width: 800px;
+  }
+
+  .degree {
+    width: clamp(54px, 9vw, 82px);
+    height: clamp(54px, 9vw, 82px);
+    border-radius: 18px;
+    border: 4px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(1.4rem, 4vw, 2.4rem);
+    font-weight: 1000;
+    background: #374151;
+    transition: transform .15s, background .15s, border-color .15s;
+  }
+
+  .degree.correct {
+    background: var(--good);
+    border-color: #86efac;
+    transform: scale(1.08);
+  }
+
+  .degree.incorrect {
+    background: var(--bad);
+    border-color: #fca5a5;
+  }
+
+  .controls {
+    margin-top: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    font: inherit;
+    font-weight: 800;
+    font-size: 1.1rem;
+    padding: 12px 20px;
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    background: #334155;
+    color: white;
+    cursor: pointer;
+  }
+
+  button:hover, button:focus {
+    border-color: var(--accent);
+    outline: none;
+  }
+
+  label {
+    font-size: 1.05rem;
+    cursor: pointer;
+  }
+
+  #voiceover {
+    width: 22px;
+    height: 22px;
+    vertical-align: middle;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  #feedback.good { color: #86efac; }
+  #feedback.bad { color: #fca5a5; }
+  #feedback.neutral { color: var(--muted); }
+
+  .hidden { display: none; }
+
+  @media (max-width: 600px) {
+    body { padding: 14px; }
+    .card { padding: 18px 12px; }
+    #answer { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+<main id="app">
+  <h1>Major Scale Spelling</h1>
+  <p class="instructions" id="instructions">
+    Press Enter to start. The app will name a major scale.
+    Type each scale degree one at a time and press Enter after each one,
+    or type the entire eight-note scale with spaces and press Enter.
+  </p>
+
+  <section class="card" aria-labelledby="prompt">
+    <div id="status" aria-live="polite">Press Enter to start.</div>
+    <div id="prompt" aria-label="Current major scale"></div>
+
+    <label class="sr-only" for="answer">Type the scale degree or the entire eight-note scale</label>
+    <input
+      id="answer"
+      type="text"
+      autocomplete="off"
+      autocapitalize="off"
+      spellcheck="false"
+      aria-describedby="inputHelp"
+      disabled
+    >
+    <div id="inputHelp" class="sr-only">
+      Enter one pitch for the current scale degree, or enter all eight pitches separated by spaces.
+    </div>
+
+    <div class="tally-label">Correct scale degrees</div>
+    <div id="tally" aria-label="Eight scale-degree running tally"></div>
+
+    <div id="feedback" class="neutral" aria-live="assertive"></div>
+
+    <div class="controls">
+      <label>
+        <input type="checkbox" id="voiceover" checked>
+        Voiceover
+      </label>
+      <button id="newScale" type="button">New scale</button>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const scales = {
+    "C major":  ["C","D","E","F","G","A","B","C"],
+    "G major":  ["G","A","B","C","D","E","F#","G"],
+    "D major":  ["D","E","F#","G","A","B","C#","D"],
+    "A major":  ["A","B","C#","D","E","F#","G#","A"],
+    "E major":  ["E","F#","G#","A","B","C#","D#","E"],
+    "B major":  ["B","C#","D#","E","F#","G#","A#","B"],
+    "F# major": ["F#","G#","A#","B","C#","D#","E#","F#"],
+    "D♭ major": ["Db","Eb","F","Gb","Ab","Bb","C","Db"],
+    "A♭ major": ["Ab","Bb","C","Db","Eb","F","G","Ab"],
+    "E♭ major": ["Eb","F","G","Ab","Bb","C","D","Eb"],
+    "B♭ major": ["Bb","C","D","Eb","F","G","A","Bb"],
+    "F major":  ["F","G","A","Bb","C","D","E","F"]
+  };
+
+  // Normalization accepts spellings such as D flat, D-flat, Db, D♭,
+  // and common enharmonic text variants. The expected spelling itself
+  // remains diatonically correct for the selected major scale.
+  const aliases = {
+    "c": "C", "b": "B", "a": "A", "g": "G", "f": "F", "e": "E", "d": "D",
+    "c#": "C#", "c sharp": "C#", "c-sharp": "C#", "c♯": "C#",
+    "d#": "D#", "d sharp": "D#", "d-sharp": "D#", "d♯": "D#",
+    "e#": "E#", "e sharp": "E#", "e-sharp": "E#", "e♯": "E#",
+    "f#": "F#", "f sharp": "F#", "f-sharp": "F#", "f♯": "F#",
+    "g#": "G#", "g sharp": "G#", "g-sharp": "G#", "g♯": "G#",
+    "a#": "A#", "a sharp": "A#", "a-sharp": "A#", "a♯": "A#",
+    "b#": "B#", "b sharp": "B#", "b-sharp": "B#", "b♯": "B#",
+
+    "cb": "Cb", "c flat": "Cb", "c-flat": "Cb", "c♭": "Cb",
+    "db": "Db", "d flat": "Db", "d-flat": "Db", "d♭": "Db",
+    "eb": "Eb", "e flat": "Eb", "e-flat": "Eb", "e♭": "Eb",
+    "fb": "Fb", "f flat": "Fb", "f-flat": "Fb", "f♭": "Fb",
+    "gb": "Gb", "g flat": "Gb", "g-flat": "Gb", "g♭": "Gb",
+    "ab": "Ab", "a flat": "Ab", "a-flat": "Ab", "a♭": "Ab",
+    "bb": "Bb", "b flat": "Bb", "b-flat": "Bb", "b♭": "Bb"
+  };
+
+  const scaleNamesForSpeech = {
+    "D♭ major": "D-flat major",
+    "A♭ major": "A-flat major",
+    "E♭ major": "E-flat major",
+    "B♭ major": "B-flat major",
+    "F# major": "F-sharp major"
+  };
+
+  const answer = document.getElementById("answer");
+  const prompt = document.getElementById("prompt");
+  const status = document.getElementById("status");
+  const feedback = document.getElementById("feedback");
+  const tally = document.getElementById("tally");
+  const voiceover = document.getElementById("voiceover");
+  const newScale = document.getElementById("newScale");
+
+  let scaleName = "";
+  let expected = [];
+  let currentDegree = 0;
+  let started = false;
+  let completed = false;
+  let acceptingFullScale = false;
+
+  function speak(text) {
+    if (!voiceover.checked || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.95;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+  }
+
+  function normalize(value) {
+    let s = value
+      .trim()
+      .toLowerCase()
+      .replace(/[–—−]/g, "-")
+      .replace(/\s+/g, " ");
+
+    // Handle accidental words even if typed without the expected spacing.
+    if (aliases[s]) return aliases[s];
+
+    // Normalize Unicode accidentals.
+    s = s.replace(/♯/g, "#").replace(/♭/g, "b");
+
+    // Strip spaces around a hyphen, e.g. "d - flat".
+    s = s.replace(/\s*-\s*/g, "-");
+
+    // Re-check after normalization.
+    if (aliases[s]) return aliases[s];
+
+    // Direct canonical forms.
+    const compact = s.replace(/\s+/g, "");
+    const canonical = ["C","C#","D","D#","E","E#","F","F#","G","G#","A","A#","B","B#",
+                       "Cb","Db","Eb","Fb","Gb","Ab","Bb"];
+    for (const note of canonical) {
+      if (compact === note.toLowerCase()) return note;
+    }
+
+    return s;
+  }
+
+  function displayPitch(pitch) {
+    return pitch.replace("#", " sharp").replace("b", " flat");
+  }
+
+  function buildTally() {
+    tally.innerHTML = "";
+    for (let i = 0; i < 8; i++) {
+      const el = document.createElement("div");
+      el.className = "degree";
+      el.id = `degree-${i}`;
+      el.textContent = i + 1;
+      el.setAttribute("aria-label", `Scale degree ${i + 1}, not yet answered`);
+      tally.appendChild(el);
+    }
+  }
+
+  function markDegree(index, correct) {
+    const el = document.getElementById(`degree-${index}`);
+    if (!el) return;
+    el.classList.remove("correct", "incorrect");
+    el.classList.add(correct ? "correct" : "incorrect");
+    el.setAttribute(
+      "aria-label",
+      `Scale degree ${index + 1}, ${correct ? "correct" : "incorrect"}`
+    );
+  }
+
+  function chooseScale() {
+    const names = Object.keys(scales);
+    scaleName = names[Math.floor(Math.random() * names.length)];
+    expected = scales[scaleName];
+    currentDegree = 0;
+    completed = false;
+    acceptingFullScale = false;
+
+    prompt.textContent = scaleName;
+    status.textContent = "Enter the scale.";
+    feedback.textContent = "";
+    feedback.className = "neutral";
+    buildTally();
+
+    answer.disabled = false;
+    answer.value = "";
+    answer.focus();
+
+    const spokenName = scaleNamesForSpeech[scaleName] || scaleName;
+    speak(spokenName + ".");
+  }
+
+  function start() {
+    if (!started) {
+      started = true;
+      chooseScale();
+    }
+  }
+
+  function submitFullScale(values) {
+    const normalized = values.map(normalize);
+    const correct = normalized.length === 8 &&
+      normalized.every((v, i) => v === expected[i]);
+
+    if (correct) {
+      normalized.forEach((_, i) => markDegree(i, true));
+      feedback.textContent = "Correct — Scale complete.";
+      feedback.className = "good";
+      status.textContent = "Scale complete.";
+      completed = true;
+      if (voiceover.checked && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        setTimeout(() => speak("Correct. Scale complete."), 80);
+      }
+      setTimeout(() => chooseScale(), 2200);
+    } else {
+      feedback.textContent = "Incorrect";
+      feedback.className = "bad";
+      status.textContent = "Incorrect";
+      speak("Incorrect.");
+      // Give useful visual information without speaking individual degrees.
+      normalized.slice(0, 8).forEach((v, i) => markDegree(i, v === expected[i]));
+      answer.select();
+    }
+  }
+
+  function submitSingle(value) {
+    const index = currentDegree;
+    const correct = normalize(value) === expected[index];
+
+    markDegree(index, correct);
+
+    if (correct) {
+      feedback.textContent = `${index + 1} correct`;
+      feedback.className = "good";
+      status.textContent = `${index + 1} correct`;
+      speak(`${index + 1} correct`);
+      currentDegree++;
+
+      if (currentDegree === 8) {
+        completed = true;
+        status.textContent = "Scale complete.";
+        feedback.textContent = "Scale complete.";
+        feedback.className = "good";
+        // Announce completion distinctly after the final degree response.
+        if (voiceover.checked && "speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+          setTimeout(() => speak("Scale complete."), 80);
+        }
+        setTimeout(() => chooseScale(), 2200);
+      }
+    } else {
+      feedback.textContent = `${index + 1} incorrect`;
+      feedback.className = "bad";
+      status.textContent = `${index + 1} incorrect`;
+      speak(`${index + 1} incorrect`);
+    }
+
+    answer.value = "";
+  }
+
+  answer.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+
+    if (!started) {
+      start();
+      return;
+    }
+
+    const raw = answer.value.trim();
+    if (!raw) return;
+
+    // Spaces indicate an attempt at the entire eight-note scale.
+    const parts = raw.split(/\s+/).filter(Boolean);
+
+    if (parts.length > 1) {
+      submitFullScale(parts);
+    } else {
+      submitSingle(raw);
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    // Enter anywhere on the page starts the first prompt.
+    if (!started && event.key === "Enter" &&
+        document.activeElement !== answer) {
+      event.preventDefault();
+      start();
+    }
+  });
+
+  newScale.addEventListener("click", () => {
+    started = true;
+    chooseScale();
+  });
+
+  voiceover.addEventListener("change", () => {
+    if (voiceover.checked && started) {
+      const spokenName = scaleNamesForSpeech[scaleName] || scaleName;
+      speak(spokenName + ".");
+    } else if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+  });
+
+  buildTally();
+})();
+</script>
+</body>
+</html>
